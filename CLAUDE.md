@@ -16,6 +16,11 @@ Control de ingresos, egresos y utilidad semanal de una taquería. Next.js 16 (Ap
 - Sin emojis, respuestas claras, en español.
 - Next 16 tiene cambios: leer la guía relevante en `node_modules/next/dist/docs/` antes de proponer APIs (por ejemplo, `middleware` ahora es `proxy.ts`; `cookies()` y `searchParams` son promesas).
 
+## Reglas de Next 16 en este proyecto
+- `next.config.ts` trae `cacheComponents: true` (viene de la plantilla). Toda lectura de datos de la petición (`cookies()`, `headers()`, `params`, `searchParams`) o consulta a Supabase con el cliente de servidor debe ir dentro de un componente envuelto en `<Suspense>`. La página principal no hace `await` de esos datos: pasa la promesa a un componente hijo `async`. Si no, aparece el error "blocking-prerender-runtime".
+- Verificar con `npm run build`: las rutas deben salir como `◐` (prerender parcial) o `○`, sin errores.
+- No exportar componentes extra desde archivos `page.tsx` si no hace falta.
+
 ## Requisitos del negocio
 - El negocio trabaja jueves, viernes, sábado y domingo. La utilidad semanal se calcula de jueves a domingo.
 - Se captura el ingreso de cada día (efectivo y terminal) y los gastos.
@@ -46,7 +51,7 @@ Control de ingresos, egresos y utilidad semanal de una taquería. Next.js 16 (Ap
 8. Despliegue en Vercel.
 
 ## Dónde me quedé
-- Último commit: "entrar con login sin terminar". Existen `app/entrar/acciones.ts` y `app/entrar/page.tsx`, pendientes de revisión.
+- 2026-10-22: `app/entrar/page.tsx` y `acciones.ts` revisados: los `name` coinciden (`correo`, `password`), `AvisoError` va en `<Suspense>` y `npm run build` pasa (`/entrar` sale como `◐`). Falta probar el login real en el navegador, y mejoras menores: `htmlFor`/`id` en los labels, `autoComplete` ("email" y "current-password"), `text-base` y `py-3` en inputs (iPhone hace zoom con menos de 16 px), y quitar el `export` innecesario de `AvisoError`.
 - Tarea 2C: `iniciarSesion(formData)` con `signInWithPassword`; si hay error, `redirect('/entrar?error=credenciales')`; si no, `redirect('/')`. `redirect` va fuera de `try/catch`. La página lee `searchParams` (promesa) para mostrar el error.
 - Pruebas pendientes de 2C: contraseña incorrecta muestra el error; la correcta lleva a `/`; con sesión, `/entrar` devuelve a `/`.
 - Pregunta pendiente para él: ¿por qué `redirect()` no debe ir dentro de un `try/catch`? (respuesta: lanza una excepción internamente para cortar la ejecución).
