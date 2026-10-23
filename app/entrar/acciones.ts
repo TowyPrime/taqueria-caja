@@ -23,7 +23,7 @@ export async function cerrarSesion() {
 
     const supabase = await crearClienteServidor();
 
-    const {error} = await supabase.auth.signOut();
+    const {error} = await supabase.auth.signOut({ scope: 'local' });
 
     if(error){
         console.error("ocurrio un error al cerrar sesión:", error);
