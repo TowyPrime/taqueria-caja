@@ -1,6 +1,7 @@
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { cerrarSesion } from "./entrar/acciones";
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 
 export default function Home() {
@@ -30,6 +31,7 @@ export default function Home() {
 }
 
 async function SaludoUsuario() {
+  await connection();
   let mensaje;
 
   const supabase = await crearClienteServidor();

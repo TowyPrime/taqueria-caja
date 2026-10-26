@@ -1,6 +1,7 @@
 import { iniciarSesion } from "./acciones";
 import { Suspense } from "react";
 
+
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };

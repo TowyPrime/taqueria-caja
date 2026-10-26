@@ -18,6 +18,7 @@ Control de ingresos, egresos y utilidad semanal de una taquería. Next.js 16 (Ap
 
 ## Reglas de Next 16 en este proyecto
 - `next.config.ts` trae `cacheComponents: true` (viene de la plantilla). Toda lectura de datos de la petición (`cookies()`, `headers()`, `params`, `searchParams`) o consulta a Supabase con el cliente de servidor debe ir dentro de un componente envuelto en `<Suspense>`. La página principal no hace `await` de esos datos: pasa la promesa a un componente hijo `async`. Si no, aparece el error "blocking-prerender-runtime".
+- Los componentes que usan Supabase con sesión (`getClaims`, `getUser`, consultas) llaman internamente a `Date.now()`: deben ir en `<Suspense>` y empezar con `await connection()` (de `next/server`), antes de crear el cliente. Si no, aparece el error "blocking-prerender-current-time" en desarrollo.
 - Verificar con `npm run build`: las rutas deben salir como `◐` (prerender parcial) o `○`, sin errores.
 - No exportar componentes extra desde archivos `page.tsx` si no hace falta.
 
@@ -42,8 +43,8 @@ Control de ingresos, egresos y utilidad semanal de una taquería. Next.js 16 (Ap
 
 ## Fases
 1. Base del proyecto y conexión con Supabase: HECHA.
-2. Login, `perfiles` y RLS: 2A (SQL) hecha, 2B (clientes y proxy) hecha, **2C (página de login) EN CURSO**.
-3. Admin: invitar y desactivar usuarios; pantalla para que el invitado defina su contraseña; evitar que el último admin se desactive o se quite el rol.
+2. Login, `perfiles` y RLS: HECHA (2A SQL, 2B clientes y proxy, 2C login, 2D saludo con lectura de `perfiles` bajo RLS, cerrar sesión con `signOut({ scope: 'local' })`).
+3. **EN CURSO** Admin: invitar y desactivar usuarios; pantalla para que el invitado defina su contraseña; evitar que el último admin se desactive o se quite el rol.
 4. Catálogos: proveedores y productos.
 5. Captura de ingresos del día.
 6. Captura de compras y gastos.
@@ -51,10 +52,8 @@ Control de ingresos, egresos y utilidad semanal de una taquería. Next.js 16 (Ap
 8. Despliegue en Vercel.
 
 ## Dónde me quedé
-- 2026-10-22: `app/entrar/page.tsx` y `acciones.ts` revisados: los `name` coinciden (`correo`, `password`), `AvisoError` va en `<Suspense>` y `npm run build` pasa (`/entrar` sale como `◐`). Falta probar el login real en el navegador, y mejoras menores: `htmlFor`/`id` en los labels, `autoComplete` ("email" y "current-password"), `text-base` y `py-3` en inputs (iPhone hace zoom con menos de 16 px), y quitar el `export` innecesario de `AvisoError`.
-- Tarea 2C: `iniciarSesion(formData)` con `signInWithPassword`; si hay error, `redirect('/entrar?error=credenciales')`; si no, `redirect('/')`. `redirect` va fuera de `try/catch`. La página lee `searchParams` (promesa) para mostrar el error.
-- Pruebas pendientes de 2C: contraseña incorrecta muestra el error; la correcta lleva a `/`; con sesión, `/entrar` devuelve a `/`.
-- Pregunta pendiente para él: ¿por qué `redirect()` no debe ir dentro de un `try/catch`? (respuesta: lanza una excepción internamente para cortar la ejecución).
-- Ejercicio pendiente: acción `cerrarSesion` (`signOut` y redirigir a `/entrar`) y botón "Salir" en `app/page.tsx`.
-- Su usuario administrador debe tener contraseña (crearlo con "Add user" en Supabase) y `rol = 'admin'` en `perfiles`. Confirmar que lo hizo.
-- Conceptos que ya entendió: `cookies()` es asíncrona; el proxy es solo el portero y la seguridad real es RLS; devolver el mismo objeto `respuesta` en el proxy conserva las cookies renovadas.
+- 2026-10-23: fase 2 completa y commiteada. `/` saluda con nombre y rol leyendo `perfiles` (componente `SaludoUsuario` dentro de `<Suspense>`); `/entrar` funciona; "Cerrar sesión" funciona.
+- Pendiente menor: su `nombre` en `perfiles` es su correo (valor por defecto del trigger); puede actualizarlo. Confirmar que su `rol` volvió a `admin` tras la prueba de la predicción.
+- Siguiente, fase 3 en subtareas: 3A cliente admin con la clave secreta (`lib/supabase/admin.ts`, `import 'server-only'`, variable `SUPABASE_SERVICE_ROLE_KEY` sin prefijo `NEXT_PUBLIC_`, nombre en `.env.example`); 3B página `/admin/usuarios` solo para admin (lista `perfiles`); 3C formulario de invitación con `inviteUserByEmail`; 3D pantalla para que el invitado defina su contraseña; 3E activar/desactivar y proteger al último admin.
+- Conceptos que ya entendió: `cookies()`/`searchParams` asíncronos y `<Suspense>`; el proxy es solo portero y la seguridad real es RLS; `redirect()` lanza una excepción y no va dentro de `try/catch`; los `name` del formulario deben coincidir con `formData.get`.
+- Corrección pendiente de concepto: la política de `select` de `perfiles` permite ver el perfil propio (`auth.uid() = id`) aunque cambie el rol; el rol solo importa para ver perfiles ajenos y para actualizar.
